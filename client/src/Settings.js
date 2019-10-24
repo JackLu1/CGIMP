@@ -219,6 +219,11 @@ class SettingsDialog extends React.Component {
             </Typography>		
 		</ListItem>
 
+        // settings for faceted search
+        <ListItem key='facetSettings'>
+            
+        </ListItem>
+
 	    <ListItem key='dataPath'>
                 <TextField
             value={this.state.dataPath}

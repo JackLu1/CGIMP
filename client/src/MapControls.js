@@ -23,22 +23,38 @@ CONTACT: Adam Diehl, adadiehl@umich.edu
 
 
 class MapControls extends Component {
+    constructor(props) {
+        super(props);
+        // Facets settings lifted from Facets.js
+        //this.state = { 
+        //    facets: {}, 
+        //}
+        this.handleSettingChange = this.handleSettingChange.bind(this);
+    }
+
+    handleSettingChange(){
+        console.log("faceted search setting changed");
+    }
+
     render() {
         return (
 		<div>
 		<FacetedSearch
-	            onDataChange={this.props.onDataChange}
-	            onMapDataChange={this.props.onMapDataChange}
-	            onNewSearchAction={this.props.onNewSearchAction}
-	            updateParentState={this.props.updateParentState}
+	        onDataChange={this.props.onDataChange}
+	        onMapDataChange={this.props.onMapDataChange}
+	        onNewSearchAction={this.props.onNewSearchAction}
+	        updateParentState={this.props.updateParentState}
+
+            //onSettingChange={this.props.onSettingChange}
+            facets={this.props.facets}
 		/>
 		<IntersectUserData
-	            data={this.props.displayedData}
-	            onDataChange={this.props.onDataChange}
-	            onMapDataChange={this.props.onMapDataChange}
-	            onNewSearchAction={this.props.onNewSearchAction}
-	            dataIsLoaded={this.props.dataIsLoaded}
-	            updateParentState={this.props.updateParentState}
+	        data={this.props.displayedData}
+	        onDataChange={this.props.onDataChange}
+	        onMapDataChange={this.props.onMapDataChange}
+	        onNewSearchAction={this.props.onNewSearchAction}
+	        dataIsLoaded={this.props.dataIsLoaded}
+	        updateParentState={this.props.updateParentState}
 		/>
 		
 		</div>

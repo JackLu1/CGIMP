@@ -31,165 +31,174 @@ const client = new Client({
 
 class FacetedSearch extends Component {
     constructor(props) {
-	super(props);
-	this.state = {
-	    facets: {},
-	    facetsSet: false,
-	    numericRanges: {}
-	}
-	this.fetchResults = this.fetchResults.bind(this);
-	this.fetchScrollResults = this.fetchScrollResults.bind(this);
-	this.handleQueryChange = this.handleQueryChange.bind(this);
-	this.getFacetsFromElasticsearch = this.getFacetsFromElasticsearch.bind(this);
+        super(props);
+        this.state = {
+            // facets lifted to MapControls.js
+            //facets: {},
+            facetsSet: false,
+            numericRanges: {}
+        }
+        this.fetchResults = this.fetchResults.bind(this);
+        this.fetchScrollResults = this.fetchScrollResults.bind(this);
+        this.handleQueryChange = this.handleQueryChange.bind(this);
+        this.getFacetsFromElasticsearch = this.getFacetsFromElasticsearch.bind(this);
     }
 
     componentDidMount() {
-	this.getFacetsFromElasticsearch();
+        this.getFacetsFromElasticsearch();
     }
 
     getFacetsFromElasticsearch = () => {
         const facets = [];
-	client.get({index: "browser",
-                    type: "modules",
-                    id: 1},
-                   (err, res) => {
-                       if (err) {
-                           console.log(err);
-		       } else {
-                           Object.keys(res._source).forEach( (key) => {
-                               let facetParams = {
-                                   dataType: "numeric",
-                                   componentId: "",
-                                   dataField: "",
-                                   title: "",
-                                   selectAllLabel:"",
-                                   filterLabel: ""
-                               }
-                               if (key !== "id" && key !== "node") {
-                                   facetParams.componentId = key + 'List';
-                                   facetParams.title = key;
-                                   facetParams.selectAllLabel = 'All ' + key;
-                                   facetParams.filterLabel = key;
-                                   if (isNaN(res._source[key])) {
-                                       facetParams.dataField = key + '.keyword';
-                                       facetParams.dataType = "text";
-                                   } else {
-                                       facetParams.dataField = key;
-                                   }
-                                   facets[key + 'List'] = facetParams;
-                               }
-                           });
-                           this.setState({
-			       facets: facets,
-			       //facetsSet: true
-			   }, () => {
-			       //console.log(this.state)
-			   });
-			   this.getNumericRangesFromElasticSearch(facets);
-                       }
-                   });
+        client.get({index: "browser",
+            type: "modules",
+            id: 1},
+            (err, res) => {
+                if (err) {
+                    console.log(err);
+                } else {
+                    Object.keys(res._source).forEach( (key) => {
+                        let facetParams = {
+                            dataType: "numeric",
+                            componentId: "",
+                            dataField: "",
+                            title: "",
+                            selectAllLabel:"",
+                            filterLabel: ""
+                        }
+                        if (key !== "id" && key !== "node") {
+                            facetParams.componentId = key + 'List';
+                            facetParams.title = key;
+                            facetParams.selectAllLabel = 'All ' + key;
+                            facetParams.filterLabel = key;
+                            if (isNaN(res._source[key])) {
+                                facetParams.dataField = key + '.keyword';
+                                facetParams.dataType = "text";
+                            } else {
+                                facetParams.dataField = key;
+                            }
+                            facets[key + 'List'] = facetParams;
+                        }
+                    });
+                    //USE this.updateStateSettings in App.js
+                    //this.setState({
+                    //    facets: facets,
+                    //    //facetsSet: true
+                    //}, 
+                    //() => {
+                    //console.log(this.state)
+                    //console.log(facets);
+                    //});
+                    this.getNumericRangesFromElasticSearch(facets);
+                }
+            });
     }
 
     getNumericRangesFromElasticSearch = async (facets) => {
-	const ranges = {};
-	const numericFields = [];
-	
-	Object.keys(facets).forEach( (key, index) => {
-	    const facet = this.state.facets[key];
-            if (facet.dataType === "numeric") {
-		numericFields.push(facet);
-	    }
-	});
+        const ranges = {};
+        const numericFields = [];
 
-	let i = 1;
-	numericFields.forEach( (facet, index) => {
-	    client.search({
-		index: 'browser',
-		type: 'modules',
-		body: {
-		    aggs: {
-			"max": { "max" : { "field": facet.title } },
-			"min": { "min" : { "field": facet.title } },
-		    },
-		    query: {
-			match_all: {}
-		    }
-		}
-	    },
-			  (err, res) => {
-			      if (err) {
-				  console.log(err);
-			      } else {
-				  ranges[facet.title] = {
-				      min: res.aggregations.min.value,
-				      max: res.aggregations.max.value
-				  };
-			      }
-			      if (i === numericFields.length ) {
-				  this.setState({ numericRanges: ranges,
-						  facetsSet: true },
-						() => {
-						    //console.log(this.state.numericRanges);
-						    //this.props.updateParentState("dataIsLoaded", "true");
-						});
-			      }
-			      i++;
-			  });	    
-	});
+        //console.log(facets);
+        Object.keys(facets).forEach( (key, index) => {
+            //const facet = this.state.facets[key];
+            //const facet = this.props.facets[key];
+            const facet = facets[key];
+            if (facet.dataType === "numeric") {
+                numericFields.push(facet);
+            }
+        });
+
+        let i = 1;
+        numericFields.forEach( (facet, index) => {
+            client.search({
+                index: 'browser',
+                type: 'modules',
+                body: {
+                    aggs: {
+                        "max": { "max" : { "field": facet.title } },
+                        "min": { "min" : { "field": facet.title } },
+                    },
+                    query: {
+                        match_all: {}
+                    }
+                }
+            },
+                (err, res) => {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        ranges[facet.title] = {
+                            min: res.aggregations.min.value,
+                            max: res.aggregations.max.value
+                        };
+                    }
+                    if (i === numericFields.length ) {
+                        this.props.updateParentState("facet", facets);
+                        this.setState({ numericRanges: ranges,
+                            facetsSet: true },
+                            () => {
+                                //console.log(this.state.numericRanges);
+                                //this.props.updateParentState("dataIsLoaded", "true");
+                                console.log(this.props.facets);
+                            });
+                    }
+                    i++;
+                });	    
+        });
     }
-				 
-	
+
+
     fetchResults = (query, api) => {
-	return fetch(api, {
-	    method: "POST",
-	    headers: {
-		"content-type": "application/json",
-	    },
-	    body: JSON.stringify(query)
-	})
-	    .then(res => res.json())
-	    .catch(err => console.error(err));
+        return fetch(api, {
+            method: "POST",
+            headers: {
+                "content-type": "application/json",
+            },
+            body: JSON.stringify(query)
+        })
+            .then(res => res.json())
+            .catch(err => console.error(err));
     };
-    
+
     fetchScrollResults = async query => {
-	const res = await this.fetchResults(query, scrollUrl);
-	const { hits } = res.hits;
-	if (hits.length) {
-	    return [
-		...hits,
-		...(await this.fetchScrollResults({
-		    scroll: "1m",
-		    scroll_id: res._scroll_id
-		}))
-	    ];
-	}
-	return [];
+        const res = await this.fetchResults(query, scrollUrl);
+        const { hits } = res.hits;
+        if (hits.length) {
+            return [
+                ...hits,
+                ...(await this.fetchScrollResults({
+                    scroll: "1m",
+                    scroll_id: res._scroll_id
+                }))
+            ];
+        }
+        return [];
     };
-    
+
     getAllDisplayedData = async (prev, next) => {
-	if (next && !next.query.match_all) {
-	    this.props.onNewSearchAction("loading");
-	    //console.log("Fetching all results for query:", next);
-	    next.size = 100000;
-	    // initial url to obtain scroll id is different
-	    const initialResults = await this.fetchResults(next, initScrollUrl);
-	    // keep scrolling till hits are present
-	    const scrollResults = await this.fetchScrollResults({
-		scroll: "1m",
-		scroll_id: initialResults._scroll_id
-	    });
-	    // concat hits from initialResults with hits from scrollResults
-	    const allResults = {};
-	    initialResults.hits.hits.forEach( (hit) => {
+        if (next && !next.query.match_all) {
+            this.props.onNewSearchAction("loading");
+            //console.log("Fetching all results for query:", next);
+            next.size = 100000;
+            // initial url to obtain scroll id is different
+            const initialResults = await this.fetchResults(next, initScrollUrl);
+            // keep scrolling till hits are present
+            const scrollResults = await this.fetchScrollResults({
+                scroll: "1m",
+                scroll_id: initialResults._scroll_id
+            });
+            // concat hits from initialResults with hits from scrollResults
+            const allResults = {};
+            initialResults.hits.hits.forEach( (hit) => {
                 allResults[hit._id] = hit._source;
             });
-	    scrollResults.forEach( (hit) => {
+            scrollResults.forEach( (hit) => {
                 allResults[hit._id] = hit._source;
             });
-	    this.props.onDataChange(allResults);
-	    this.props.onNewSearchAction("loaded");
-	    //console.log(`${Object.keys(allResults).length} results found:`, allResults);
-	}
+            this.props.onDataChange(allResults);
+            this.props.onNewSearchAction("loaded");
+            //console.log(`${Object.keys(allResults).length} results found:`, allResults);
+        }
     };
 
     handleQueryChange = async (prev, next) => {
@@ -201,114 +210,119 @@ class FacetedSearch extends Component {
                 allResults[hit.key] = hit.doc_count;
             });
             this.props.onMapDataChange(allResults);
-	    this.getAllDisplayedData(prev, next);
+            this.getAllDisplayedData(prev, next);
         }
     };
 
     render () {
-	if (!this.state.facetsSet) {
-	    return (<div/>)
-	} else {
-	    const keys = Object.keys(this.state.facets);
-	    keys.push("mainSearch", "resultsList");
-	    const dataFields = [];
-	    Object.keys(this.state.facets).forEach( (key) => {
-		dataFields.push(this.state.facets[key].dataField);
-	    });
-	    
-	    return (		
-		    <div>
-		    <div>
-                    Filter Data
-                    </div>
-		    <ReactiveBase
-		app="browser"
-		url={browser.elasticAddr}
-		type="modules"
-		    >
-		    
-		{/*<DataSearch
-		componentId="mainSearch"
-		dataField={dataFields}
-		className="search-bar"
-		queryFormat="and"
-		placeholder="Search the dataset..."
-		/>*/}
-		    
-		    <SelectedFilters showClearAll={true} clearAllLabel="Clear filters"/>
-		    
-		    <ReactiveList
-		componentId="resultsList"
-		dataField="id"
-		defaultQuery={() => ({
-		    size: 1,
-		    aggs: {
-			nodes: {
-			    terms: {
-				field: 'node',
-				size: 100000
-			    }
-			}
-		    }
-		})}
-		react={{
-		    and: keys
-		}}
-		render={({ data }) => (
-			<div/>
-		)}
-		resultStats={false}
-		renderResultStats={props => 
-				   <div/>
-				  }
-		onQueryChange={this.handleQueryChange}
-		    />		
-		    
-		{Object.keys(this.state.facets).map( (key, index) => {
-		    const facet = this.state.facets[key];
-		    
-		    if (facet.dataType === "text") {
-			return (<MultiList
-				key={key}
-				componentId={facet.componentId}
-				dataField={facet.dataField}
-				title={facet.title}
-				queryFormat="and"
-				selectAllLabel={facet.selectAllLabel}
-				showCheckbox={true}
-				showCount={true}
-				showSearch={false}
-				react={{
-				    and: keys
-				}}
-				showFilter={true}
-				filterLabel={facet.filterLabel}
-				URLParams={false}
-				innerClass={{
-				    label: "list-item",
-				    input: "list-input"
-				}}
-				/>);
-		    } else if (facet.dataType === "numeric") {
-			return (<RangeInput
-				key={key}
-				componentId={facet.componentId}
-				dataField={facet.dataField}
-				title={facet.title}
-				range={{
-				    "start": this.state.numericRanges[facet.title].min,
-				    "end": this.state.numericRanges[facet.title].max
-				}}
-				/>);
-			//return (<div key={key} />);
-		    }
-		    return(<div key={index}/>);
-		})}
-		
-		</ReactiveBase>
-		    </div>
-	    );
-	}
+        //if (!this.state.facetsSet) {
+        if (Object.keys(this.props.facets).length === 0){
+            console.log("no");
+            return (<div/>)
+        } else {
+            //console.log(Object.keys(this.props.facets));
+
+            const keys = Object.keys(this.props.facets);
+            keys.push("mainSearch", "resultsList");
+            const dataFields = [];
+            Object.keys(this.props.facets).forEach( (key) => {
+                dataFields.push(this.props.facets[key].dataField);
+            });
+
+            return (		
+                <div>
+                <div>
+                Filter Data
+                </div>
+                <ReactiveBase
+                app="browser"
+                url={browser.elasticAddr}
+                type="modules"
+                >
+
+                {/*<DataSearch
+        componentId="mainSearch"
+        dataField={dataFields}
+        className="search-bar"
+        queryFormat="and"
+        placeholder="Search the dataset..."
+        />*/}
+
+                <SelectedFilters showClearAll={true} clearAllLabel="Clear filters"/>
+
+                <ReactiveList
+                componentId="resultsList"
+                dataField="id"
+                defaultQuery={() => ({
+                    size: 1,
+                    aggs: {
+                        nodes: {
+                            terms: {
+                                field: 'node',
+                                size: 100000
+                            }
+                        }
+                    }
+                })}
+            react={{
+                and: keys
+            }}
+            render={({ data }) => (
+                <div/>
+            )}
+                resultStats={false}
+                renderResultStats={props => 
+                    <div/>
+                }
+                onQueryChange={this.handleQueryChange}
+                />		
+
+                {Object.keys(this.props.facets).map( (key, index) => {
+                    console.log(key)
+                    const facet = this.props.facets[key];
+
+                    if (facet.dataType === "text") {
+                        return (<MultiList
+                            key={key}
+                            componentId={facet.componentId}
+                            dataField={facet.dataField}
+                            title={facet.title}
+                            queryFormat="and"
+                            selectAllLabel={facet.selectAllLabel}
+                            showCheckbox={true}
+                            showCount={true}
+                            showSearch={false}
+                            react={{
+                                and: keys
+                            }}
+                            showFilter={true}
+                            filterLabel={facet.filterLabel}
+                            URLParams={false}
+                            innerClass={{
+                                label: "list-item",
+                                    input: "list-input"
+                            }}
+                            />);
+                    } else if (facet.dataType === "numeric") {
+                        return (<RangeInput
+                            key={key}
+                            componentId={facet.componentId}
+                            dataField={facet.dataField}
+                            title={facet.title}
+                            range={{
+                                "start": this.state.numericRanges[facet.title].min,
+                                    "end": this.state.numericRanges[facet.title].max
+                            }}
+                            />);
+                        //return (<div key={key} />);
+                    }
+                    return(<div key={index}/>);
+                })}
+
+                </ReactiveBase>
+                </div>
+            );
+        }
     }
 }
 

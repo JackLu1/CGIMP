@@ -35,6 +35,7 @@ class App extends Component {
     constructor(props) {
 	super(props);
 	this.state = {
+        facets: [], //facets settings for faceted search
 	    mainTitle: "Human-Mouse Self-Organizing Map Data",
 	    dataPath: browser.dataPath,
 	    dataFile: browser.moduleDataFile,
@@ -206,7 +207,7 @@ class App extends Component {
 		     "format": ['chrom', ':', 'start', '-', 'end']
 		    }
 		],
-	    }
+	    },
 	};
     }
 
@@ -468,8 +469,16 @@ class App extends Component {
                               this.forceUpdate();
                          });
 	} else {
-	    this.setState({ [name]: value });
+        //console.log(value);
+        this.setState({ [name]: value }, 
+            () => {
+                console.log(this.state[name]);
+            });
 	}
+    }
+
+    handleSettingChange = (facetParams) => {
+        console.log("handle setting changes");
     }
 
     // Render the UI.
@@ -479,15 +488,20 @@ class App extends Component {
 		<Dashboard
 	            title={this.state.mainTitle}
 	            controls={Object.keys(this.state.displayedData).length ?
-                        <MapControls
-                            data={this.state.data}
-                            displayedData={this.state.displayedData}
-                            onMapDataChange={this.handleMapDataChange}
-		            onDataChange={this.handleDataChange}
-		            onNewSearchAction={this.handleNewElasticsearchPromise}
-		            dataIsLoaded={this.state.dataIsLoaded}
-			    updateParentState={this.updateStateSettings}  
-                        /> :
+                    <MapControls
+                        data={this.state.data}
+                        displayedData={this.state.displayedData}
+                        onMapDataChange={this.handleMapDataChange}
+                        onDataChange={this.handleDataChange}
+                        onNewSearchAction={this.handleNewElasticsearchPromise}
+                        dataIsLoaded={this.state.dataIsLoaded}
+                        updateParentState={this.updateStateSettings}  
+
+                        // Change settings for faceted search
+                        //onSettingChange={this.handleSettingChange}
+                        facets={this.state.facets} // settings for faceted search
+                        //onSettingChange={this.updateStateSettings}
+                    /> :
                         (<div></div>)}
 	            map={Object.keys(this.state.displayedData).length ?
                         <SvgModuleMap
